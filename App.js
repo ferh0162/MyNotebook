@@ -41,15 +41,6 @@ console.log(data)
   const [editObj, setEditObj] = useState(null); // [text, setText
   const [imagePath, setImagePath] = useState(null)
  
-  async function launchImagePicker(){
-    let result = await ImagePicker.launchImageLibraryAsync({
-         allowsEditing: true
-     })
-     if (!result.canceled) {
-         setImagePath(result.assets[0].uri)
-       
-     }
-   }
 
   // SETTING UP HEADER BUTTON
   useEffect(() => {
@@ -75,17 +66,27 @@ console.log(data)
     setModalVisible(false);  // close the modal after adding
   }
 
+  async function launchImagePicker(){
+    let result = await ImagePicker.launchImageLibraryAsync({
+         allowsEditing: true
+     })
+     if (!result.canceled) {
+         setImagePath(result.assets[0].uri)
+       
+     }
+   }
+
   async function uploadImage(){
     const res = await fetch(imagePath)
     const blob = await res.blob()
-    const storageRef = ref(storage, 'myImage.jpg')
+    const storageRef = ref(storage, editObj.id+'.jpg')
     uploadBytes(storageRef, blob).then((snapshot) => {
       alert('Uploaded a blob or image!');
     })
   }
 
-  async function downloadImage(){
-    getDownloadURL(ref(storage, 'myImage.jpg')).then((url) => {
+  async function downloadImage(id){
+    getDownloadURL(ref(storage, id+'.jpg')).then((url) => {
       setImagePath(url)
     }).catch((error) => {
       alert(error)
@@ -100,13 +101,17 @@ console.log(data)
   }
   function updateButtonPressed(item) {
 setEditObj(item)
-
+setText(item.text) //For at undgå at gemme med et tomt felt
   }
 
   async function saveUpdate(){
    await updateDoc(doc(database, "notes", editObj.id), {
       text: text
   })
+  if (imagePath) {
+    uploadImage()
+    
+  }
   setText('')
   setEditObj(null)
   }
@@ -139,12 +144,14 @@ setEditObj(item)
 { editObj &&
 <View>
 <TextInput defaultValue={editObj.text} onChangeText={(tekst) => setText(tekst)}></TextInput>
+<Button title="Add image"onPress={launchImagePicker}/>
 <Button title="Save"onPress={saveUpdate}/>
 </View>}
-        <Image style= {{width:200, height:200}} source={{uri:imagePath}} />
+<Image style= {{width:200, height:200}} source={{uri:imagePath}} />
+        {/*<Image style= {{width:200, height:200}} source={{uri:imagePath}} />
         <Button title='Pick image' onPress={launchImagePicker} ></Button> 
         <Button title='Upload image' onPress={uploadImage} ></Button> 
-        <Button title='Download image' onPress={downloadImage} ></Button> 
+        {/*<Button title='Download image' onPress={downloadImage} ></Button>*/}
 <FlatList
       data={data}
       renderItem={({ item }) => (
@@ -161,6 +168,10 @@ setEditObj(item)
         title="Update"
         onPress={() => updateButtonPressed(item)}
       />
+            <Button
+        title="Se billede"
+        onPress={() => downloadImage(item.id)}
+      />
           </View>
         </TouchableOpacity>
       )}
@@ -172,16 +183,42 @@ setEditObj(item)
 
 // SECOND PAGE COMPONENT (for note details)
 const Page2 = ({ navigation, route }) => {
-  const message = route.params?.message // handling case when route is null
-  const [reply, setReply] = useState('Empty');
+  const message = route.params?.message; // handling case when route is null
+  const [reply, setReply] = useState(null);
+
+  // Function to handle saving the reply to the database
+  const saveReply = async () => {
+    // Check if there's a valid reply to save
+    if (reply) {
+      try {
+        // Assuming you have a collection called "replies" for storing replies
+        await addDoc(collection(database, "replies"), {
+          noteId: route.params?.noteId, // You should pass the noteId from Page1 to identify which note this reply belongs to
+          replyText: reply,
+        });
+        // Optionally, you can navigate back to Page1 or perform any other action here
+        // navigation.navigate("Noter");
+      } catch (error) {
+        console.log("Error saving reply: " + error);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
       {/* DISPLAY NOTE MESSAGE */}
       {message && <Text>{message}</Text>}
-      <TextInput placeholder={reply} onChangeText={(tekst) => setReply(tekst)} />
-    </View>)
+      <TextInput
+        placeholder="Reply to this note"
+        onChangeText={(text) => setReply(text)}
+        value={reply}
+        style={styles.textInput}
+      />
+      <Button title="Save Reply" onPress={saveReply} />
+    </View>
+  );
 }
+
 
 // STYLING
 const styles = StyleSheet.create({
