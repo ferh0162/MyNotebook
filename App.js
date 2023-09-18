@@ -1,4 +1,4 @@
-import { app, database } from './firebase';
+import { app, database, storage } from './firebase';
 import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -6,9 +6,13 @@ import { NavigationContainer } from '@react-navigation/native';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import {
   StyleSheet, Text, View, TextInput, Button, FlatList,
-  Modal, TouchableWithoutFeedback, Keyboard, TouchableOpacity
+  Modal, TouchableWithoutFeedback, Keyboard, TouchableOpacity, Image
 } from 'react-native';
 import React, { useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
 
 // MAIN APP COMPONENT
 export default function App() {
@@ -23,6 +27,7 @@ export default function App() {
   );
 }
 
+
 // FIRST PAGE COMPONENT (for notes listing and adding notes)
 const Page1 = ({ navigation, route }) => {
 
@@ -34,6 +39,17 @@ console.log(data)
   const [text, setText] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
   const [editObj, setEditObj] = useState(null); // [text, setText
+  const [imagePath, setImagePath] = useState(null)
+ 
+  async function launchImagePicker(){
+    let result = await ImagePicker.launchImageLibraryAsync({
+         allowsEditing: true
+     })
+     if (!result.canceled) {
+         setImagePath(result.assets[0].uri)
+       
+     }
+   }
 
   // SETTING UP HEADER BUTTON
   useEffect(() => {
@@ -57,6 +73,23 @@ console.log(data)
       console.log("file i db " + error) 
     }
     setModalVisible(false);  // close the modal after adding
+  }
+
+  async function uploadImage(){
+    const res = await fetch(imagePath)
+    const blob = await res.blob()
+    const storageRef = ref(storage, 'myImage.jpg')
+    uploadBytes(storageRef, blob).then((snapshot) => {
+      alert('Uploaded a blob or image!');
+    })
+  }
+
+  async function downloadImage(){
+    getDownloadURL(ref(storage, 'myImage.jpg')).then((url) => {
+      setImagePath(url)
+    }).catch((error) => {
+      alert(error)
+    })
   }
 
   // FUNCTION TO HANDLE DELETING A NOTE
@@ -106,9 +139,12 @@ setEditObj(item)
 { editObj &&
 <View>
 <TextInput defaultValue={editObj.text} onChangeText={(tekst) => setText(tekst)}></TextInput>
-<Text onPress={saveUpdate}>Save</Text>
+<Button title="Save"onPress={saveUpdate}/>
 </View>}
-
+        <Image style= {{width:200, height:200}} source={{uri:imagePath}} />
+        <Button title='Pick image' onPress={launchImagePicker} ></Button> 
+        <Button title='Upload image' onPress={uploadImage} ></Button> 
+        <Button title='Download image' onPress={downloadImage} ></Button> 
 <FlatList
       data={data}
       renderItem={({ item }) => (
@@ -117,24 +153,19 @@ setEditObj(item)
         >
           <View style={styles.itemContainer}>
             <Text style={styles.itemText}>{item.text}</Text>
-            <TouchableOpacity
-              onPress={() => deleteButtonPressed(item.id)}
-              style={styles.deleteButton}
-            >
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => updateButtonPressed(item)}
-              style={styles.deleteButton}
-            >
-              <Text >Update</Text>
-            </TouchableOpacity>
+            <Button
+        title="Delete"
+        onPress={() => deleteButtonPressed(item.id)}
+      />
+      <Button
+        title="Update"
+        onPress={() => updateButtonPressed(item)}
+      />
           </View>
         </TouchableOpacity>
       )}
       keyExtractor={(item, index) => index.toString()}
     />
-
     </View>
   );
 }
@@ -157,8 +188,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
   modalContainer: {
     flex: 1,
@@ -168,10 +199,27 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   textInput: {
-    height: 50, // Adjust the height as needed
-    borderWidth: 1, // Add a border for better visibility (optional)
-    borderColor: 'gray', // Customize border color (optional)
-    padding: 10, // Add some padding to the text input (optional)
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    marginBottom: 16,
+  },
+  addButton: {
+    backgroundColor: 'blue',
+    color: 'white',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 4,
+    marginBottom: 16,
+  },
+  closeButton: {
+    backgroundColor: 'red',
+    color: 'white',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 4,
   },
   itemContainer: {
     flexDirection: 'row',
@@ -181,20 +229,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
     backgroundColor: '#fff',
+    marginBottom: 8,
+    borderRadius: 4,
   },
   itemText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
-  deleteButton: {
-    backgroundColor: 'red',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
+  image: {
+    width: 200,
+    height: 200,
+    resizeMode: 'cover',
+    marginBottom: 16,
+    borderRadius: 4,
   },
-  deleteButtonText: {
+  button: {
+    backgroundColor: 'blue',
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  buttonText: {
+    color: 'white',
   },
 });
+
