@@ -37,6 +37,7 @@ const data = values?.docs.map((doc) => ({...doc.data(), id: doc.id}))
 console.log(data)
 
   const [text, setText] = useState('');
+  const [id, setId] = useState('');
   const [isModalVisible, setModalVisible] = useState(false);
   const [editObj, setEditObj] = useState(null); // [text, setText
   const [imagePath, setImagePath] = useState(null)
@@ -58,7 +59,7 @@ console.log(data)
   async function addButtonPressed() {
     try {
       await addDoc(collection(database, "notes"),{
-        text: text
+        text: text,
         })
     } catch (error) {
       console.log("file i db " + error) 
@@ -156,7 +157,7 @@ setText(item.text) //For at undgå at gemme med et tomt felt
       data={data}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={() => navigation.navigate("Beskrivelse", { message: item.text })}
+          onPress={() => navigation.navigate("Beskrivelse", { message: item.text, id: item.id })}
         >
           <View style={styles.itemContainer}>
             <Text style={styles.itemText}>{item.text}</Text>
@@ -184,6 +185,7 @@ setText(item.text) //For at undgå at gemme med et tomt felt
 // SECOND PAGE COMPONENT (for note details)
 const Page2 = ({ navigation, route }) => {
   const message = route.params?.message; // handling case when route is null
+  const id = route.params?.id; // handling case when route is null
   const [reply, setReply] = useState(null);
 
   // Function to handle saving the reply to the database
@@ -191,9 +193,9 @@ const Page2 = ({ navigation, route }) => {
     // Check if there's a valid reply to save
     if (reply) {
       try {
-        // Assuming you have a collection called "replies" for storing replies
-        await addDoc(collection(database, "replies"), {
-          noteId: route.params?.noteId, // You should pass the noteId from Page1 to identify which note this reply belongs to
+        // Assuming you have a collection called "notes" for storing replies
+        await addDoc(collection(database, "notes"), {
+          text: message, // You should pass the noteId from Page1 to identify which note this reply belongs to
           replyText: reply,
         });
         // Optionally, you can navigate back to Page1 or perform any other action here
