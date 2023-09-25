@@ -12,16 +12,17 @@ import {
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
 
 
 export default function Page2({ navigation, route }) {
+
   const message = route.params?.message; // handling case when route is null
   const id = route.params?.id; // handling case when route is null
   const replyText = route.params?.replyText; // handling case when route is null
   const [reply, setReply] = useState(null);
   const [imagePath, setImagePath] = useState(null);
-  const [editObj, setEditObj] = useState(null); // [text, setText
 
 
   useEffect(() => {
@@ -71,15 +72,14 @@ export default function Page2({ navigation, route }) {
   async function uploadImage(){
     const res = await fetch(imagePath)
     const blob = await res.blob()
-    const storageRef = ref(storage, editObj.id+'.jpg')
+    const storageRef = ref(storage, id+'.jpg')
     uploadBytes(storageRef, blob).then((snapshot) => {
       alert('Uploaded a blob or image!');
     })
   }
 
   async function saveUpdate(){
-    await updateDoc(doc(database, "notes", editObj.id), {
-       text: text
+    await updateDoc(doc(database, "notes", id), {
    })
    if (imagePath) {
      uploadImage()
@@ -88,6 +88,18 @@ export default function Page2({ navigation, route }) {
    setText('')
    setEditObj(null)
    }
+
+   async function deleteImage() {
+    try {
+      // Delete the image from Firebase Storage
+      await deleteObject(ref(storage, id+'.jpg'));
+      // Clear the image path in the state
+      setImagePath(null);
+      alert('Image deleted successfully!');
+    } catch (error) {
+      alert('Error deleting image: ' + error.message);
+    }
+  }
 
   // Function to handle saving the reply to the database
   const saveReply = async () => {
@@ -106,14 +118,18 @@ export default function Page2({ navigation, route }) {
         console.log("Error saving reply: " + error);
       }
     }
+    alert('Reply updated successfully!')
+
   };
 
   return (
     <View style={styles.container}>
       <Image style={{ width: 200, height: 200 }} source={{ uri: imagePath }} />
       <Button title="Add image"onPress={launchImagePicker}/>
+      <Button title="Camera"onPress={launchCamera}/>
     <Button title="Save"onPress={saveUpdate}/>
-    <Button title="Camera"onPress={launchCamera}/>
+    <Button title="Delete Image" onPress={deleteImage} /> {/* Add a delete image button */}
+
       {/* DISPLAY NOTE MESSAGE */}
       <TextInput
         placeholder={"Reply to this note"}

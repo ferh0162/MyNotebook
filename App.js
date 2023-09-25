@@ -182,7 +182,7 @@ setText(item.text) //For at undgå at gemme med et tomt felt
       data={data}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={() => navigation.navigate("Beskrivelse", { message: item.text, id: item.id, replyText: item.replyText})}
+          onPress={() => navigation.navigate("Beskrivelse", { message: item.text, id: item.id, replyText: item.replyText, editObj: editObj})}
         >
           <View style={styles.itemContainer}>
             <Text style={styles.itemText}>{item.text}</Text>
