@@ -67,6 +67,28 @@ console.log(data)
     setModalVisible(false);  // close the modal after adding
   }
 
+  async function launchCamera(){
+    const result = await ImagePicker.requestCameraPermissionsAsync() //spørger om lov
+    if (result.granted === false) {
+      alert('Du skal give adgang til kameraet for at kunne tage et billede')
+      return
+    }else{
+      ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      })
+      .then((result) => {
+        if (!result.cancelled) {
+          setImagePath(result.uri)
+        }
+      })
+      .catch((error) => {
+        alert(error)
+      })
+    }
+  }
+
   async function launchImagePicker(){
     let result = await ImagePicker.launchImageLibraryAsync({
          allowsEditing: true
@@ -147,6 +169,7 @@ setText(item.text) //For at undgå at gemme med et tomt felt
 <TextInput defaultValue={editObj.text} onChangeText={(tekst) => setText(tekst)}></TextInput>
 <Button title="Add image"onPress={launchImagePicker}/>
 <Button title="Save"onPress={saveUpdate}/>
+<Button title="Camera"onPress={launchCamera}/>
 </View>}
 <Image style= {{width:200, height:200}} source={{uri:imagePath}} />
         {/*<Image style= {{width:200, height:200}} source={{uri:imagePath}} />
@@ -157,7 +180,7 @@ setText(item.text) //For at undgå at gemme med et tomt felt
       data={data}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={() => navigation.navigate("Beskrivelse", { message: item.text, id: item.id })}
+          onPress={() => navigation.navigate("Beskrivelse", { message: item.text, id: item.id, replyText: item.replyText})}
         >
           <View style={styles.itemContainer}>
             <Text style={styles.itemText}>{item.text}</Text>
@@ -186,37 +209,54 @@ setText(item.text) //For at undgå at gemme med et tomt felt
 const Page2 = ({ navigation, route }) => {
   const message = route.params?.message; // handling case when route is null
   const id = route.params?.id; // handling case when route is null
+  const replyText = route.params?.replyText; // handling case when route is null
   const [reply, setReply] = useState(null);
+  const [imagePath, setImagePath] = useState(null)
+  downloadImage(id)
 
-  // Function to handle saving the reply to the database
-  const saveReply = async () => {
-    // Check if there's a valid reply to save
-    if (reply) {
-      try {
-        // Assuming you have a collection called "notes" for storing replies
-        await addDoc(collection(database, "notes"), {
-          text: message, // You should pass the noteId from Page1 to identify which note this reply belongs to
-          replyText: reply,
-        });
-        // Optionally, you can navigate back to Page1 or perform any other action here
-        // navigation.navigate("Noter");
-      } catch (error) {
-        console.log("Error saving reply: " + error);
-      }
+  async function downloadImage(id){
+    getDownloadURL(ref(storage, id+'.jpg')).then((url) => {
+      setImagePath(url)
+    }).catch((error) => {
+      alert(error)
+    })
+  }
+
+ // Function to handle saving the reply to the database
+ const saveReply = async () => {
+  // Check if there's a valid reply to save
+  if (reply) {
+    try {
+      // Update the document with the given id
+      const docRef = doc(database, "notes", id);
+      await updateDoc(docRef, {
+        replyText: reply
+        // any other fields you want to update can go here
+      });
+      // Optionally, you can navigate back to Page1 or perform any other action here
+      // navigation.navigate("Noter");
+    } catch (error) {
+      console.log("Error saving reply: " + error);
     }
-  };
+  }
+};
+
 
   return (
     <View style={styles.container}>
+      
+      <Image style= {{width:200, height:200}} source={{uri:imagePath}} />
       {/* DISPLAY NOTE MESSAGE */}
-      {message && <Text>{message}</Text>}
+      
       <TextInput
-        placeholder="Reply to this note"
+        placeholder={"Reply to this note"}
         onChangeText={(text) => setReply(text)}
+        defaultValue={replyText}
         value={reply}
         style={styles.textInput}
       />
       <Button title="Save Reply" onPress={saveReply} />
+ 
     </View>
   );
 }
