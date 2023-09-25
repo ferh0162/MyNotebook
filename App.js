@@ -12,6 +12,8 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import Page2 from './page2'; // Import Page2 component
+
 
 
 // MAIN APP COMPONENT
@@ -201,62 +203,6 @@ setText(item.text) //For at undgå at gemme med et tomt felt
       )}
       keyExtractor={(item, index) => index.toString()}
     />
-    </View>
-  );
-}
-
-// SECOND PAGE COMPONENT (for note details)
-const Page2 = ({ navigation, route }) => {
-  const message = route.params?.message; // handling case when route is null
-  const id = route.params?.id; // handling case when route is null
-  const replyText = route.params?.replyText; // handling case when route is null
-  const [reply, setReply] = useState(null);
-  const [imagePath, setImagePath] = useState(null)
-  downloadImage(id)
-
-  async function downloadImage(id){
-    getDownloadURL(ref(storage, id+'.jpg')).then((url) => {
-      setImagePath(url)
-    }).catch((error) => {
-      alert(error)
-    })
-  }
-
- // Function to handle saving the reply to the database
- const saveReply = async () => {
-  // Check if there's a valid reply to save
-  if (reply) {
-    try {
-      // Update the document with the given id
-      const docRef = doc(database, "notes", id);
-      await updateDoc(docRef, {
-        replyText: reply
-        // any other fields you want to update can go here
-      });
-      // Optionally, you can navigate back to Page1 or perform any other action here
-      // navigation.navigate("Noter");
-    } catch (error) {
-      console.log("Error saving reply: " + error);
-    }
-  }
-};
-
-
-  return (
-    <View style={styles.container}>
-      
-      <Image style= {{width:200, height:200}} source={{uri:imagePath}} />
-      {/* DISPLAY NOTE MESSAGE */}
-      
-      <TextInput
-        placeholder={"Reply to this note"}
-        onChangeText={(text) => setReply(text)}
-        defaultValue={replyText}
-        value={reply}
-        style={styles.textInput}
-      />
-      <Button title="Save Reply" onPress={saveReply} />
- 
     </View>
   );
 }
